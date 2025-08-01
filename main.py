@@ -21,8 +21,8 @@ from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
 #parser.add_argument('--data-dir', default='data/train_data.pkl', type=str)
-parser.add_argument('--vocab-file', default='europarl/vocab.json', type=str)
-parser.add_argument('--checkpoint-path', default='checkpoints/deepsc-Rayleigh', type=str)
+parser.add_argument('--vocab-file', default='txt/vocab.json', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/deepsc_checkpoints/', type=str)
 parser.add_argument('--channel', default='Rayleigh', type=str, help = 'Please choose AWGN, Rayleigh, and Rician')
 parser.add_argument('--MAX-LENGTH', default=30, type=int)
 parser.add_argument('--MIN-LENGTH', default=4, type=int)
@@ -99,7 +99,7 @@ def train(epoch, args, net, mi_net=None):
 if __name__ == '__main__':
     # setup_seed(10)
     args = parser.parse_args()
-    args.vocab_file = '/import/antennas/Datasets/hx301/' + args.vocab_file
+    args.vocab_file = '/content/drive/MyDrive/datasets/extracted_data/' + args.vocab_file
     """ preparing the dataset """
     vocab = json.load(open(args.vocab_file, 'rb'))
     token_to_idx = vocab['token_to_idx']

@@ -22,10 +22,10 @@ import json
 from tqdm import tqdm
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--input-data-dir', default='europarl/en', type=str)
-parser.add_argument('--output-train-dir', default='europarl/train_data.pkl', type=str)
-parser.add_argument('--output-test-dir', default='europarl/test_data.pkl', type=str)
-parser.add_argument('--output-vocab', default='europarl/vocab.json', type=str)
+parser.add_argument('--input-data-dir', default='txt/en', type=str)
+parser.add_argument('--output-train-dir', default='txt/train_data.pkl', type=str)
+parser.add_argument('--output-test-dir', default='txt/test_data.pkl', type=str)
+parser.add_argument('--output-vocab', default='txt/vocab.json', type=str)
 
 SPECIAL_TOKENS = {
   '<PAD>': 0,
@@ -51,7 +51,7 @@ def normalize_string(s):
     s = s.lower()
     return s
 
-def cutted_data(cleaned, MIN_LENGTH=4, MAX_LENGTH=30):
+def cutted_data(cleaned, MIN_LENGTH=2, MAX_LENGTH=5):
     cutted_lines = list()
     for line in cleaned:
         length = len(line.split())
@@ -143,7 +143,7 @@ def decode(seq_idx, idx_to_token, delim=None, stop_at_end=True):
 
 
 def main(args):
-    data_dir = '/import/antennas/Datasets/hx301/'
+    data_dir = '/content/drive/MyDrive/datasets/extracted_data/'
     args.input_data_dir = data_dir + args.input_data_dir
     args.output_train_dir = data_dir + args.output_train_dir
     args.output_test_dir = data_dir + args.output_test_dir
