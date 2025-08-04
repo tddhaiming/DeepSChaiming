@@ -1,4 +1,5 @@
 import os
+import sys
 import torch
 import argparse
 import torch.nn as nn
@@ -10,6 +11,9 @@ from models.transceiver import DeepSC
 from utils import *
 from transformers import DistilBertTokenizer
 
+current_dir = os.path.dirname(os.path.abspath(__file__))
+sys.path.append(current_dir)
+
 # 设置随机种子，保证实验可复现
 def setup_seed(seed):
     torch.manual_seed(seed)
@@ -19,7 +23,6 @@ def setup_seed(seed):
 def val_step(net, src, trg, p, pad_idx, criterion, channel):
     trg_input = trg[:, :-1]
     trg_output = trg[:, 1:]
-    
     src_mask, trg_mask = create_masks(src, trg_input, pad_idx)
     preds = net(src, trg_input, src_mask, trg_mask, p, channel)
     
