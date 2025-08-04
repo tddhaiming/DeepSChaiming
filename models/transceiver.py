@@ -22,7 +22,7 @@ import torch.nn as nn
 import torch.nn.functional as F
 from torch.autograd import Function
 import math
-
+from transformers import DistilBertModel
 
 class PositionalEncoding(nn.Module):
     "Implement the PE function."
@@ -191,28 +191,43 @@ class DecoderLayer(nn.Module):
         return x
 
     
+# class Encoder(nn.Module):
+#     "Core encoder is a stack of N layers"
+#     def __init__(self, num_layers, src_vocab_size, max_len, 
+#                  d_model, num_heads, dff, dropout = 0.1):
+#         super(Encoder, self).__init__()
+        
+#         self.d_model = d_model
+#         self.embedding = nn.Embedding(src_vocab_size, d_model)
+#         self.pos_encoding = PositionalEncoding(d_model, dropout, max_len)
+#         self.enc_layers = nn.ModuleList([EncoderLayer(d_model, num_heads, dff, dropout) 
+#                                             for _ in range(num_layers)])
+        
+#     def forward(self, x, src_mask):
+#         "Pass the input (and mask) through each layer in turn."
+#         # the input size of x is [batch_size, seq_len]
+#         x = self.embedding(x) * math.sqrt(self.d_model)
+#         x = self.pos_encoding(x)
+        
+#         for enc_layer in self.enc_layers:
+#             x = enc_layer(x, src_mask)
+        
+#         return x
+
 class Encoder(nn.Module):
-    "Core encoder is a stack of N layers"
-    def __init__(self, num_layers, src_vocab_size, max_len, 
-                 d_model, num_heads, dff, dropout = 0.1):
+    def __init__(self, d_model):
         super(Encoder, self).__init__()
-        
-        self.d_model = d_model
-        self.embedding = nn.Embedding(src_vocab_size, d_model)
-        self.pos_encoding = PositionalEncoding(d_model, dropout, max_len)
-        self.enc_layers = nn.ModuleList([EncoderLayer(d_model, num_heads, dff, dropout) 
-                                            for _ in range(num_layers)])
-        
-    def forward(self, x, src_mask):
-        "Pass the input (and mask) through each layer in turn."
-        # the input size of x is [batch_size, seq_len]
-        x = self.embedding(x) * math.sqrt(self.d_model)
-        x = self.pos_encoding(x)
-        
-        for enc_layer in self.enc_layers:
-            x = enc_layer(x, src_mask)
-        
-        return x
+        # 加载预训练DistilBERT（输出维度768）
+        self.distilbert = DistilBertModel.from_pretrained('distilbert-base-uncased')
+        # 线性层：将768维转换为d_model（适配原模型结构）
+        self.projection = nn.Linear(768, d_model) if 768 != d_model else nn.Identity()
+
+    def forward(self, x, src_mask=None):
+        # x: 输入的token ids，形状 [batch_size, seq_len]
+        bert_output = self.distilbert(input_ids=x)
+        last_hidden_state = bert_output.last_hidden_state  # [batch, seq_len, 768]
+        return self.projection(last_hidden_state)  # 投影到d_model维度
+
         
 
 
@@ -265,8 +280,9 @@ class DeepSC(nn.Module):
                  trg_max_len, d_model, num_heads, dff, dropout = 0.1):
         super(DeepSC, self).__init__()
         
-        self.encoder = Encoder(num_layers, src_vocab_size, src_max_len, 
-                               d_model, num_heads, dff, dropout)
+        #self.encoder = Encoder(num_layers, src_vocab_size, src_max_len, 
+                               #d_model, num_heads, dff, dropout)
+        self.encoder = Encoder(d_model)  # 只传递d_model参数
         
         self.channel_encoder = nn.Sequential(nn.Linear(d_model, 256), 
                                              #nn.ELU(inplace=True),
