@@ -30,7 +30,7 @@ sys.path.append(current_dir)
 
 # 命令行参数
 parser = argparse.ArgumentParser()
-parser.add_argument('--checkpoint-path', default='./deepsc_sst2_checkpoints/', type=str)
+parser.add_argument('--checkpoint-path', default='/content/drive/MyDrive/deepsc_sst2_checkpoints', type=str)
 parser.add_argument('--channel', default='Rayleigh', type=str, choices=['AWGN', 'Rayleigh', 'Rician'])
 parser.add_argument('--max-length', default=30, type=int)
 parser.add_argument('--min-length', default=4, type=int)
