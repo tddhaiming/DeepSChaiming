@@ -20,9 +20,6 @@ from utils import BleuScore, SNR_to_noise, greedy_decode
 from tqdm import tqdm
 from transformers import DistilBertTokenizer, DistilBertForSequenceClassification
 
-# 确保中文显示正常
-plt.rcParams["font.family"] = ["SimHei", "WenQuanYi Micro Hei", "Heiti TC"]
-plt.rcParams["axes.unicode_minus"] = False
 
 # 创建输出文件夹（按信道分类）
 def create_output_dirs(channel, drive_root="/content/drive/MyDrive/deepsc_results"):
@@ -66,11 +63,32 @@ device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 #     # 后续用DistilBERT的tokenizer处理，这里返回文本列表
 #     return batch
 
+# class SST2Dataset(Dataset):
+#     def __init__(self, split='train'):
+#         self.dataset = load_dataset('stanfordnlp/sst2')[split]
+#         self.sentences = [item['sentence'] for item in self.dataset 
+#                           if 4 <= len(item['sentence'].split()) <= 30]
+
+#     def __getitem__(self, index):
+#         return self.sentences[index]
+
+#     def __len__(self):
+#         return len(self.sentences)
+
+# def collate_data(batch):
+#     return batch
+
 class SST2Dataset(Dataset):
     def __init__(self, split='train'):
         self.dataset = load_dataset('stanfordnlp/sst2')[split]
-        self.sentences = [item['sentence'] for item in self.dataset 
-                          if 4 <= len(item['sentence'].split()) <= 30]
+        # 同时过滤句子和对应的标签，确保长度符合要求
+        self.sentences = []
+        self.labels = []
+        for item in self.dataset:
+            words = item['sentence'].split()
+            if 4 <= len(words) <= 30:  # 保持原有的长度过滤条件
+                self.sentences.append(item['sentence'])
+                self.labels.append(item['label'])  # 保存标签
 
     def __getitem__(self, index):
         return self.sentences[index]
@@ -78,10 +96,9 @@ class SST2Dataset(Dataset):
     def __len__(self):
         return len(self.sentences)
 
-def collate_data(batch):
-    return batch
-
-
+    def get_labels(self):
+        # 添加获取标签的方法
+        return self.labels
 
 
 
@@ -91,9 +108,9 @@ def collate_data(batch):
 def plot_bleu_vs_snr(snr_list, bleu_scores, channel, output_dir):
     plt.figure(figsize=(10, 6))
     plt.plot(snr_list, bleu_scores, marker='o', color='b', linewidth=2, markersize=8)
-    plt.title(f'{channel}信道：不同SNR下的BLEU分数', fontsize=14)
-    plt.xlabel('信噪比(dB)', fontsize=12)
-    plt.ylabel('BLEU分数', fontsize=12)
+    plt.title(f'{channel} Channel: BLEU Score vs SNR', fontsize=14)  # 英文标题
+    plt.xlabel('SNR (dB)', fontsize=12)  # 英文X轴标签
+    plt.ylabel('BLEU Score', fontsize=12)  # 英文Y轴标签
     plt.grid(alpha=0.3)
     plt.xticks(snr_list)
     plt.ylim(0, max(bleu_scores) + 0.1)
@@ -106,9 +123,9 @@ def plot_bleu_vs_snr(snr_list, bleu_scores, channel, output_dir):
 def plot_accuracy_vs_snr(snr_list, acc_scores, channel, output_dir):
     plt.figure(figsize=(10, 6))
     plt.plot(snr_list, acc_scores, marker='s', color='g', linewidth=2, markersize=8)
-    plt.title(f'{channel}信道：不同SNR下的情感分类准确率', fontsize=14)
-    plt.xlabel('信噪比(dB)', fontsize=12)
-    plt.ylabel('准确率', fontsize=12)
+    plt.title(f'{channel} Channel: Sentiment Accuracy vs SNR', fontsize=14)  # 英文标题
+    plt.xlabel('SNR (dB)', fontsize=12)  # 英文X轴标签
+    plt.ylabel('Accuracy', fontsize=12)  # 英文Y轴标签
     plt.grid(alpha=0.3)
     plt.xticks(snr_list)
     plt.ylim(0, 1.0)
@@ -119,22 +136,22 @@ def plot_accuracy_vs_snr(snr_list, acc_scores, channel, output_dir):
 
 
 def save_reconstruction_examples(original, reconstructed, snr, idx, channel, output_dir):
-    # 文本保存
+    # 英文文本保存
     with open(f'{output_dir}/reconstruction_examples.txt', 'a', encoding='utf-8') as f:
-        f.write(f'\n===== SNR={snr}dB 示例 {idx+1} =====\n')
-        f.write(f'原始句子: {original}\n')
-        f.write(f'重建句子: {reconstructed}\n')
+        f.write(f'\n===== Example {idx+1} (SNR={snr}dB) =====\n')
+        f.write(f'Original sentence: {original}\n')
+        f.write(f'Reconstructed sentence: {reconstructed}\n')
     
-    # 可视化对比
+    # 英文可视化对比
     plt.figure(figsize=(12, 4))
-    plt.text(0.5, 0.7, f'原始句子: {original}', 
+    plt.text(0.5, 0.7, f'Original: {original}', 
              ha='center', va='center', fontsize=10,
              bbox=dict(facecolor='lightblue', alpha=0.5))
-    plt.text(0.5, 0.3, f'重建句子 (SNR={snr}dB): {reconstructed}', 
+    plt.text(0.5, 0.3, f'Reconstructed (SNR={snr}dB): {reconstructed}', 
              ha='center', va='center', fontsize=10,
              bbox=dict(facecolor='lightgreen', alpha=0.5))
     plt.axis('off')
-    plt.title(f'{channel}信道：句子重建对比示例 {idx+1}', fontsize=12)
+    plt.title(f'{channel} Channel: Sentence Reconstruction Example {idx+1}', fontsize=12)  # 英文标题
     plt.savefig(f'{output_dir}/reconstruction_example_{snr}dB_{idx}.png', dpi=300, bbox_inches='tight')
     plt.close()
 
@@ -163,7 +180,7 @@ def performance(args, SNR, net, tokenizer, cls_model, output_dir):
 
     net.eval()
     with torch.no_grad():
-        for snr in tqdm(SNR, desc=f"评估{args.channel}信道"):
+        for snr in tqdm(SNR, desc=f"Evaluating {args.channel} channel"):
             pred_sentences = []
             target_sentences = []
             noise_std = SNR_to_noise(snr)
@@ -201,8 +218,11 @@ def performance(args, SNR, net, tokenizer, cls_model, output_dir):
                         reconstruction_examples[snr].append((targets[i], preds[i]))
 
             # 计算BLEU
-            bleu = bleu_score_1gram.compute_blue_score(target_sentences, pred_sentences)
-            all_bleu.append(bleu)
+            #bleu = bleu_score_1gram.compute_blue_score(target_sentences, pred_sentences)
+            bleu_scores_per_sample = bleu_score_1gram.compute_blue_score(target_sentences, pred_sentences)
+            avg_bleu = np.mean(bleu_scores_per_sample)
+            all_bleu.append(avg_bleu)
+          
 
             # 计算分类准确率（需确保SST2Dataset能返回标签）
             correct = 0
