@@ -1,6 +1,6 @@
-# Deep Learning Enabled Semantic Communication Systems
+# Deep Learning Enabled Semantic Communication Systems Haiming reproduce
 
-<center>Huiqiang Xie, Zhijin Qin, Geoffrey Ye Li, and Biing-Hwang Juang </center>
+<center>Haiming Tang, Huiqiang Xie, Zhijin Qin, Geoffrey Ye Li, and Biing-Hwang Juang </center>
 
 This is the implementation of  Deep learning enabled semantic communication systems.
 
